@@ -76,12 +76,16 @@ def _event_weight(props: dict[str, Any], source: str) -> float:
         if cat == "felt":
             return 1.0
         mag = props.get("magnitude")
+        if mag is None:
+            return 1.0
         try:
             return max(1.0, float(mag) - 2.0)
         except (TypeError, ValueError):
             return 1.0
     if source == "firms":
         frp = props.get("frp")
+        if frp is None:
+            return 0.75
         try:
             return min(4.0, 0.5 + float(frp) / 25.0)
         except (TypeError, ValueError):
