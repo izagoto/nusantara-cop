@@ -15,5 +15,9 @@ class AppState:
     weather_by_adm4: KeyedTTLCache[dict[str, Any]] = field(default_factory=KeyedTTLCache)
     layer_runs: dict[str, dict[str, Any]] = field(default_factory=dict)
     weather_fetches: list[dict[str, Any]] = field(default_factory=list)
+    weather_queue: list[tuple[int, float, int, str, str]] = field(default_factory=list)
+    weather_queue_seen: set[str] = field(default_factory=set)
+    weather_rolling_codes: list[str] = field(default_factory=list)
+    weather_rolling_cursor: int = 0
     last_refresh_errors: list[str] = field(default_factory=list)
     viz_analytics: dict[str, Any] | None = None

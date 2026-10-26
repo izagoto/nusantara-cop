@@ -22,6 +22,9 @@ build/
 data/*.db
 data/*.sqlite
 
+# Indeks adm4 nasional (besar; hasilkan via scripts/build_wilayah_index.py)
+backend/app/data/wilayah_index.json
+
 # Node / frontend
 frontend/node_modules/
 frontend/dist/

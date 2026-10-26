@@ -109,6 +109,7 @@ async def health() -> dict[str, Any]:
             "usgs_earthquake": state.support_usgs.get() is not None,
         },
         "last_refresh_errors": state.last_refresh_errors,
+        "weather_queue_depth": len(state.weather_queue),
         "provenance_summary": _layer_provenance_summary(),
         **_meta(),
     }

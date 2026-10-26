@@ -6,10 +6,18 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from app.bmkg import earthquake as eq
 from app.bmkg.client import bmkg_client
 from app.bmkg import nowcast as nc
+from app.bmkg.weather_queue import (
+    enqueue_cap_from_nowcast,
+    enqueue_rolling_batch,
+    process_weather_queue,
+    queue_depth,
+)
 from app.config import (
     EARTHQUAKE_REFRESH_SECONDS,
     NOWCAST_REFRESH_SECONDS,
     SUPPORT_REFRESH_SECONDS,
+    WEATHER_QUEUE_ENABLED,
+    WEATHER_QUEUE_MAX_PER_MINUTE,
 )
 from app.provenance import attach_payload_provenance, utc_now_iso
 from app.state import AppState
@@ -51,6 +59,10 @@ async def refresh_nowcast(state: AppState) -> None:
         "last_success": True,
         "last_error": None,
     }
+    if WEATHER_QUEUE_ENABLED:
+        added = enqueue_cap_from_nowcast(state, payload)
+        if added:
+            logger.info("Antrian cuaca CAP: +%s adm4 (depth=%s)", added, queue_depth(state))
     rebuild_viz_analytics_cache(state)
 
 
@@ -154,6 +166,15 @@ async def refresh_support(state: AppState) -> None:
     rebuild_viz_analytics_cache(state)
 
 
+async def refresh_weather_queue_job(state: AppState) -> None:
+    if not WEATHER_QUEUE_ENABLED:
+        return
+    enqueue_rolling_batch(state)
+    stats = await process_weather_queue(state, max_per_run=WEATHER_QUEUE_MAX_PER_MINUTE)
+    if stats["fetched"] or stats["errors"]:
+        logger.info("Antrian cuaca: %s", stats)
+
+
 async def refresh_all(state: AppState) -> None:
     await _run_named(state, "earthquake", refresh_earthquakes)
     await _run_named(state, "nowcast", refresh_nowcast)
@@ -196,4 +217,19 @@ def start_scheduler(state: AppState) -> AsyncIOScheduler:
         replace_existing=True,
         max_instances=1,
     )
+
+    if WEATHER_QUEUE_ENABLED:
+
+        async def weather_queue_job() -> None:
+            await refresh_weather_queue_job(state)
+
+        scheduler.add_job(
+            weather_queue_job,
+            "interval",
+            seconds=60,
+            id="refresh_weather_queue",
+            replace_existing=True,
+            max_instances=1,
+        )
+
     return scheduler
