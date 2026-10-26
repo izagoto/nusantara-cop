@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Indonesia COP — Common Operational Picture</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="app" class="hud-root dashboard-cop dashboard-saas" data-hud="cyan" data-basemap="analytics">
+      <div id="map" class="map-canvas"></div>
+      <button
+        type="button"
+        id="map-locate-btn"
+        class="map-locate-btn"
+        title="Pusatkan ke lokasi Anda atau kembali ke Indonesia"
+      >
+        <span class="ui-icon ui-icon--inline" aria-hidden="true">
+          <svg class="ui-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+            <circle cx="12" cy="12" r="8" />
+          </svg>
+        </span>
+        + Locate
+      </button>
+      <div class="map-vignette" aria-hidden="true"></div>
+
+      <div class="cop-map-legend map-overlay styled-scrollbar" aria-label="Legenda layer COP">
+        <p class="cop-map-legend-title">Legenda</p>
+        <ul class="cop-map-legend-list">
+          <li><span class="cop-swatch cop-swatch--nowcast"></span> Peringatan dini cuaca (CAP)</li>
+          <li><span class="cop-swatch cop-swatch--quake"></span> Gempa BMKG (TEWS)</li>
+          <li><span class="cop-swatch cop-swatch--analytics"></span> Agregat risiko provinsi (Analitik)</li>
+        </ul>
+      </div>
+
+      <div class="hud-overlay hud-zone">
+        <header class="hud-top">
+          <div class="hud-top-row hud-top-row--primary">
+            <div class="brand">
+              <span class="brand-mark ui-icon" aria-hidden="true">
+                <svg
+                  class="ui-icon-svg brand-layers-svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M12 2 2 7l10 5 10-5-10-5z" />
+                  <path d="M2 12l10 5 10-5" />
+                  <path d="M2 17l10 5 10-5" />
+                </svg>
+              </span>
+              <div>
+                <p class="brand-eyebrow">Common Operational Picture · data terbuka BMKG</p>
+                <h1 class="brand-title" title="COP = Common Operational Picture">Indonesia COP</h1>
+                <p class="brand-disclaimer">Agregator independen — bukan layanan resmi BMKG</p>
+              </div>
+            </div>
+            <div class="hud-top-meta">
+              <span id="clock-wib" class="meta-chip">— WIB</span>
+              <div class="basemap-switch" role="group" aria-label="Gaya peta dasar">
+                <button type="button" class="basemap-btn" data-basemap="analytics" title="Peta analitik + nama provinsi">Analitik</button>
+                <button type="button" class="basemap-btn" data-basemap="hybrid" title="Satelit dengan nama lokasi">Satelit</button>
+                <button type="button" class="basemap-btn" data-basemap="streets" title="Jalan dan pemukiman">Pemukiman</button>
+              </div>
+              <span id="feed-status" class="meta-chip feed-healthy">
+                <span class="feed-dot feed-dot-healthy"></span>LIVE
+              </span>
+              <span id="last-sync" class="meta-chip meta-chip-sync hud-sync-chip" title="Sinkronisasi telemetri terakhir">Sync: —</span>
+              <button type="button" id="refresh-btn" class="btn-meta-action btn-meta-action--icon" title="Refresh telemetri">
+                <span class="ui-icon ui-icon--inline" aria-hidden="true">
+                  <svg class="ui-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 12a8 8 0 1 1-2.34-5.66" />
+                    <path d="M20 4v6h-6" />
+                  </svg>
+                </span>
+                Refresh
+              </button>
+              <button
+                type="button"
+                id="panel-toggle"
+                class="btn-panel-toggle btn-panel-toggle--icon"
+                aria-expanded="true"
+                aria-controls="hud-panels"
+              >
+                <span class="ui-icon ui-icon--inline" aria-hidden="true">
+                  <svg class="ui-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="7" height="18" rx="1" />
+                    <rect x="14" y="3" width="7" height="18" rx="1" />
+                  </svg>
+                </span>
+                Panel
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <div id="hud-panels" class="hud-panels hud-panels--float">
+          <aside class="hud-left map-float-panel styled-scrollbar" aria-label="Layer telemetri">
+            <div class="panel-block panel-search">
+              <h2 class="panel-title">Wilayah &amp; cuaca adm4</h2>
+              <form id="wilayah-search-form" class="wilayah-search-form" role="search">
+                <input
+                  id="wilayah-search-input"
+                  class="wilayah-search-input"
+                  type="search"
+                  name="q"
+                  autocomplete="off"
+                  placeholder="Provinsi, kota, atau kode adm4…"
+                  aria-label="Cari wilayah"
+                />
+              </form>
+              <ul id="wilayah-search-results" class="wilayah-search-results" hidden></ul>
+            </div>
+
+            <div class="panel-block">
+              <h2 class="panel-title">Layer telemetri</h2>
+              <ul class="layer-list">
+                <li>
+                  <label class="layer-row">
+                    <input type="checkbox" id="layer-nowcast" checked />
+                    <span class="ui-icon layer-icon layer-icon--nowcast" aria-hidden="true">
+                      <svg class="ui-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/><path d="M13 11l-2 3h3l-2 3"/></svg>
+                    </span>
+                    <span class="layer-copy">
+                      <span class="layer-name">Peringatan dini cuaca</span>
+                      <span class="layer-desc">BMKG CAP · polygon nasional</span>
+                    </span>
+                    <span class="layer-toggle" aria-hidden="true"></span>
+                  </label>
+                </li>
+                <li>
+                  <label class="layer-row">
+                    <input type="checkbox" id="layer-earthquake" checked />
+                    <span class="ui-icon layer-icon layer-icon--quake" aria-hidden="true">
+                      <svg class="ui-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="9"/></svg>
+                    </span>
+                    <span class="layer-copy">
+                      <span class="layer-name">Gempa bumi</span>
+                      <span class="layer-desc">BMKG TEWS · M5+ & dirasakan</span>
+                    </span>
+                    <span class="layer-toggle" aria-hidden="true"></span>
+                  </label>
+                </li>
+              </ul>
+            </div>
+
+          </aside>
+
+          <aside class="hud-right map-float-panel styled-scrollbar" aria-label="Intel brief">
+            <div class="panel-block panel-grow panel-intel">
+              <h2 class="panel-title">Intel brief</h2>
+              <div id="detail" class="intel-brief intel-brief--padded">Menunggu telemetri BMKG…</div>
+            </div>
+          </aside>
+        </div>
+
+        <section class="cop-alert-dock" aria-label="Peringatan cuaca aktif">
+          <h2 class="cop-alert-dock-title">Peringatan cuaca aktif (CAP)</h2>
+          <div id="nowcast-table-wrap" class="cop-alert-table-wrap styled-scrollbar">
+            <p class="cop-alert-empty">Memuat peringatan cuaca…</p>
+          </div>
+        </section>
+
+        <footer class="hud-bottom" aria-label="Konteks peta">
+          <div class="hud-context-bar">
+            <div class="ctx-block">
+              <span class="ctx-label">Koordinat</span>
+              <span id="ctx-coords" class="ctx-value ctx-value--coords" title="WGS84 · lintang, bujur">—</span>
+            </div>
+            <div class="ctx-block">
+              <span class="ctx-label">Lokasi</span>
+              <span id="ctx-location" class="ctx-value ctx-value--location">—</span>
+            </div>
+            <div class="ctx-block">
+              <span class="ctx-label">Zoom</span>
+              <span id="ctx-zoom" class="ctx-value ctx-value--zoom" title="Level zoom peta">—</span>
+            </div>
+          </div>
+          <p class="cop-legal-footer">
+            Sumber telemetri:
+            <a href="https://data.bmkg.go.id" target="_blank" rel="noopener">data terbuka BMKG</a>
+            · basemap:
+            <a id="basemap-attribution-link" href="https://openfreemap.org" target="_blank" rel="noopener">—</a>
+            · koroplet analitik = agregat internal, bukan produk resmi BMKG
+          </p>
+          <p class="hud-bottom-attrib">
+            Atribusi: BMKG data terbuka · basemap dinamis · Indonesia COP bukan layanan resmi BMKG
+          </p>
+        </footer>
+      </div>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
